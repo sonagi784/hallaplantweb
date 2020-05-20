@@ -1,11 +1,14 @@
 from django.test import TestCase, Client
 from bs4 import BeautifulSoup
 from .models import Post
+from django.utils import timezone
+from django.contrib.auth.models import User
 
 class TestView(TestCase):
     def setup(self):
         self.client = Client()
-    
+        self.author_000 = User.objects.create(username='Smith', password='nopassword')
+
     def test_post_list(self):
         response = self.client.get('/blog/')
         self.assertEqual(response.status_code, 200)
@@ -23,9 +26,9 @@ class TestView(TestCase):
 
         post_000 = Post.objects.create(
             title = 'test post',
-            content= 'hello world',
-
+            content = 'hello world',
+            created = timezone.now(),
+            author = self.author_000,
         )
 
         self.assertGreater(Post.objects.count(), 0)
-        
