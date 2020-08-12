@@ -84,9 +84,8 @@
             <!-- Blog Entries Column -->
             <div class="col-md-8">
                 <h1>Blog</h1>
-
-                <h3>아직 게시물이 없습니다</h3>
                 
+                {% if object_list.exists %}
                 <!-- Blog Post -->
                 {% for p in object_list %}
                 <div class="card mb-4">
@@ -106,7 +105,9 @@
                     </div>
                 </div>
                 {% endfor %}
-
+                {% else %}
+                <h3>아직 게시물이 없습니다.</h3>
+                {% endif %}
                 <!-- Pagination (deleted) -->
 
             </div>
