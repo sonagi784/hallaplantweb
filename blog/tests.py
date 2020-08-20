@@ -1,6 +1,6 @@
 from django.test import TestCase, Client
 from bs4 import BeautifulSoup
-from .models import Post, Category
+from .models import Post, Category, Tag
 from django.utils import timezone
 from django.contrib.auth.models import User
 
@@ -16,6 +16,14 @@ def create_category(name='life', description=''):
 
     return category
 
+def create_tag(name='some_tag'):
+    tag, is_created = Tag.objects.get_or_create(
+        name=name,
+    )
+    tag.slug = tag.name.replace(' ', '-').replace('/', '')
+    tag.save()
+
+    return tag
 
 def create_post(title, content, author, category=None):
     blog_post = Post.objects.create(
@@ -44,6 +52,33 @@ class TestModel(TestCase):
         )
 
         self.assertEqual(category.post_set.count(), 1) # category.post_set : category에 연결된 post들 불러오기
+
+    def test_tag(self):
+        tag_000 = create_tag(name='bad_guy')
+        tag_001 = create_tag(name='america')
+
+        post_000 = create_post(
+            title='first post', 
+            content='we are the world', 
+            author=self.author_000,
+        )
+        post_000.tags.add(tag_000)
+        post_000.tags.add(tag_001)
+        post_000.save()
+        
+        post_001 = create_post(
+            title='stay fool, stay hungry',
+            content='story about Steve Jobs',
+            author = self.author_000,
+        )
+        post_001.tags.add(tag_001)
+        post_001.save()
+
+
+        self.assertEqual(post_000.tags.count(), 2) # post는 여러개의 tag를 가질수있다
+        self.assertEqual(tag_001.post_set.count(), 2) # tag는 여러개의 post에 붙을수있다
+        self.assertEqual(tag_001.post_set.first(), post_000) # tag는 자신을 가진 여러개의 post를 가져올수있다
+        self.assertEqual(tag_001.post_set.last(), post_001) # tag는 자신을 가진 여러개의 post를 가져올수있다
 
     def test_post(self):
         category = create_category()
@@ -90,12 +125,19 @@ class TestView(TestCase):
             content='we are the world', 
             author=self.author_000,
         )
+        tag_america = create_tag(name='america')
+        post_000.tags.add(tag_america)
+        post_000.save()
+
         post_001 = create_post(
             title='second post', 
             content='second second seoncd', 
             author=self.author_000,
-            category=create_category(name='정치/사회')
+            category=create_category(name='정치/사회'),
         )
+        post_001.tags.add(tag_america)
+        post_001.save()
+
         self.assertGreater(Post.objects.count(), 0)
         
         response = self.client.get('/blog/')
@@ -115,6 +157,11 @@ class TestView(TestCase):
         main_div = soup.find('div', id='main-div')
         self.assertIn('정치/사회', main_div.text) # 첫번째 포스트 - 정치/사회 있어야 함
         self.assertIn('미분류', main_div.text) # 두번째 포스트 - 미분류 있어야 함
+
+        #tag
+        post_card_000 = main_div.find('div', id='post-card-{}'.format(post_000.pk))
+        self.assertIn('#america', post_card_000.text) # tag가 해당 post 카드마다 있다
+
     
     def test_post_detail(self): # 새 함수 시작마다 새로운 db
         post_000 = create_post(
@@ -122,6 +169,10 @@ class TestView(TestCase):
             content='we are the world', 
             author=self.author_000,
         )
+        tag_america = create_tag(name='america')
+        post_000.tags.add(tag_america)
+        post_000.save()
+
         post_001 = create_post(
             title='second post', 
             content='second second seoncd', 
@@ -146,6 +197,9 @@ class TestView(TestCase):
         self.assertIn(post_000.content, main_div.text)
 
         self.check_right_side(soup)
+
+        
+        self.assertIn('#america', main_div.text)
 
     def test_post_list_by_category(self):
         category_politics = create_category(name='정치/사회')
@@ -195,4 +249,35 @@ class TestView(TestCase):
         self.assertIn('미분류', main_div.text)
         self.assertNotIn(category_politics.name, main_div.text)
         
-    
+    def test_tag_page(self):
+        tag_000 = create_tag(name='bad_guy')
+        tag_001 = create_tag(name='america')
+
+        post_000 = create_post(
+            title='first post', 
+            content='we are the world', 
+            author=self.author_000,
+        )
+        post_000.tags.add(tag_000)
+        post_000.tags.add(tag_001)
+        post_000.save()
+        
+        post_001 = create_post(
+            title='stay fool, stay hungry',
+            content='story about Steve Jobs',
+            author = self.author_000,
+        )
+        post_001.tags.add(tag_001)
+        post_001.save()
+
+        response = self.client.get(tag_000.get_absolute_url())
+        self.assertEqual(response.status_code, 200)
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        main_div = soup.find('div', id='main-div')
+        blog_h1 = main_div.find('h1', id='post-list-title')
+        self.assertIn('#{}'.format(tag_000.name), blog_h1.text)
+        self.assertIn(post_000.title, main_div.text)
+        self.assertNotIn(post_001.title, main_div.text)
+
+
