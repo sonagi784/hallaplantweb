@@ -93,7 +93,8 @@ class TestModel(TestCase):
 class TestView(TestCase):
     def setUp(self):
         self.client = Client()
-        self.author_000 = User.objects.create(username='smith', password='nopassword')
+        self.author_000 = User.objects.create_user(username='smith', password='nopassword')
+        self.user_obama = User.objects.create_user(username='obama', password='nopassword')
 
     def check_navbar(self, soup):
         navbar = soup.find('div', id='navbar')
@@ -164,10 +165,12 @@ class TestView(TestCase):
 
     
     def test_post_detail(self): # 새 함수 시작마다 새로운 db
+        category_politics = create_category(name='정치/사회')
         post_000 = create_post(
             title='first post', 
             content='we are the world', 
             author=self.author_000,
+            category=category_politics,
         )
         tag_america = create_tag(name='america')
         post_000.tags.add(tag_america)
@@ -177,7 +180,6 @@ class TestView(TestCase):
             title='second post', 
             content='second second seoncd', 
             author=self.author_000,
-            category=create_category(name='정치/사회')
         )
         
         self.assertGreater(Post.objects.count(), 0)
@@ -198,8 +200,37 @@ class TestView(TestCase):
 
         self.check_right_side(soup)
 
-        
+        # tag
         self.assertIn('#america', main_div.text)
+
+        #category
+        self.assertIn(category_politics.name, main_div.text)
+        #edit x (로그인x)
+        self.assertNotIn('EDIT', main_div.text)
+        
+        #로그인
+        #edit > post.author == 로그인 사용자
+        login_success = self.client.login(username='smith', password='nopassword')
+        self.assertTrue(login_success)
+        response = self.client.get(post_000.get_absolute_url())
+        self.assertEqual(response.status_code, 200)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        main_div = soup.find('div', id='main-div')
+
+        self.assertEqual(post_000.author, self.author_000)
+        self.assertIn('EDIT', main_div.text)
+
+        #edit x > post.author != 로그인 사용자
+        login_success = self.client.login(username='obama', password='nopassword')
+        self.assertTrue(login_success)
+        response = self.client.get(post_000.get_absolute_url())
+        self.assertEqual(response.status_code, 200)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        main_div = soup.find('div', id='main-div')
+
+        self.assertNotEqual(post_000.author, self.user_obama)
+        self.assertNotIn('EDIT', main_div.text)
+
 
     def test_post_list_by_category(self):
         category_politics = create_category(name='정치/사회')
