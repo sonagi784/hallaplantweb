@@ -29,14 +29,14 @@
 
 <!-- Preview Image -->
 {% if object.head_image %}
-<img src="{{ object.head_image.url }}" alt="Card image cap" class="card-image-top">
+<img src="{{ object.head_image.url }}" alt="{{ object.title }}" class="img-fluid rounded">
 {% else %}
 <img class="img-fluid rounded" src="http://placehold.it/900x300" alt="">
 {% endif %}
 <hr>
 
 <!-- Post Content -->
-{{ object.content }}
+{{ object.get_markdown_content | safe }}
 
 <br>
 {% for tag in object.tags.all %}
