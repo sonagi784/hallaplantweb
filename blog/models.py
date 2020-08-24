@@ -34,10 +34,10 @@ class Post(models.Model):
     title = models.CharField(max_length=30)
     content = MarkdownxField()
     head_image = models.ImageField(upload_to='blog/%Y/%m/%d/', blank=True)
-    created = models.DateTimeField()
+    created = models.DateTimeField(auto_now_add=True)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     category = models.ForeignKey(Category, blank=True, null=True, on_delete=models.SET_NULL)
-    tags = models.ManyToManyField(Tag, blank=True, null=True)
+    tags = models.ManyToManyField(Tag, blank=True)
 
     def __str__(self):
         return str(self.title) + ' :: ' + str(self.author)
@@ -47,3 +47,9 @@ class Post(models.Model):
 
     def get_markdown_content(self):
         return markdown(self.content)
+    
+    def get_update_url(self):
+        return self.get_absolute_url() + 'update/'
+    
+
+

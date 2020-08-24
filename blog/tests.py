@@ -163,7 +163,7 @@ class TestView(TestCase):
         post_card_000 = main_div.find('div', id='post-card-{}'.format(post_000.pk))
         self.assertIn('#america', post_card_000.text) # tag가 해당 post 카드마다 있다
 
-    
+
     def test_post_detail(self): # 새 함수 시작마다 새로운 db
         category_politics = create_category(name='정치/사회')
         post_000 = create_post(
@@ -256,6 +256,7 @@ class TestView(TestCase):
         self.assertNotIn('미분류', main_div.text)
         self.assertIn(category_politics.name, main_div.text)
 
+
     def test_post_list_no_category(self):
         category_politics = create_category(name='정치/사회')
 
@@ -279,7 +280,8 @@ class TestView(TestCase):
         main_div = soup.find('div', id='main-div')
         self.assertIn('미분류', main_div.text)
         self.assertNotIn(category_politics.name, main_div.text)
-        
+
+
     def test_tag_page(self):
         tag_000 = create_tag(name='bad_guy')
         tag_001 = create_tag(name='america')
@@ -310,5 +312,37 @@ class TestView(TestCase):
         self.assertIn('#{}'.format(tag_000.name), blog_h1.text)
         self.assertIn(post_000.title, main_div.text)
         self.assertNotIn(post_001.title, main_div.text)
+
+
+    def test_post_update(self):
+        post_000 = create_post(
+            title='first post', 
+            content='we are the world', 
+            author=self.author_000,
+        )
+        
+        self.assertEqual(post_000.get_update_url(), post_000.get_absolute_url() + 'update/')
+        
+        response = self.client.get(post_000.get_update_url())
+        self.assertEqual(response.status_code, 200)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        main_div = soup.find('div', id='main-div')
+        
+        self.assertNotIn('Created', main_div.text)
+        self.assertNotIn('Author', main_div.text)
+
+
+    def test_post_create(self):
+        response = self.client.get('/blog/create/')
+        self.assertNotEqual(response.status_code, 200)
+
+        self.client.login(username='smith', password='nopassword')
+        response = self.client.get('/blog/create/')
+        self.assertEqual(response.status_code, 200)
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+        main_div = soup.find('div', id='main-div')
+
 
 

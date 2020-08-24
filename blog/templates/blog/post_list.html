@@ -4,6 +4,9 @@
 <h1 id="post-list-title">Blog 
 {% if category %}<small class="text-muted">- {{ category }}</small>{% endif %}
 {% if tag %}<small class="text-muted">: #{{ tag }}</small>{% endif %}
+{% if user.is_authenticated %}
+<button type="button" class="btn btn-primary float-right" onclick="location.href='/blog/create/'">New Post</button>
+{% endif %}
 </h1>
 
 {% if object_list.exists %}
