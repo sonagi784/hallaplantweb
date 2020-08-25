@@ -1,6 +1,6 @@
 from django.test import TestCase, Client
 from bs4 import BeautifulSoup
-from .models import Post, Category, Tag
+from .models import Post, Category, Tag, Comment
 from django.utils import timezone
 from django.contrib.auth.models import User
 
@@ -36,6 +36,18 @@ def create_post(title, content, author, category=None):
 
     return blog_post
 
+def create_comment(post, text='default comment', author=None):
+    if author is None:
+        author, is_created = User.objects.get_or_create(
+            username='guest',	
+            password='guestpassword'
+        )
+    comment = Comment.objects.create(
+        post=post,	
+        text=text,	
+        author=author
+    )
+    return comment
 
 class TestModel(TestCase):
     def setUp(self):
@@ -86,10 +98,28 @@ class TestModel(TestCase):
             title='first post', 
             content='we are the world', 
             author=self.author_000,
-            category=create_category(),
+            category=category,
         )
 
-        
+    def test_comment(self):
+        post_000 = create_post(
+            title='first post', 
+            content='we are the world', 
+            author=self.author_000,
+        )
+        self.assertEqual(Comment.objects.count(), 0)
+        comment_000 = create_comment(
+            post = post_000,
+        )
+        comment_001 = create_comment(
+            post = post_000,
+            text = 'second text',
+        )
+
+        self.assertEqual(Comment.objects.count(), 2)
+        self.assertEqual(post_000.comment_set.count(), 2)
+
+
 class TestView(TestCase):
     def setUp(self):
         self.client = Client()
@@ -172,6 +202,8 @@ class TestView(TestCase):
             author=self.author_000,
             category=category_politics,
         )
+        comment_000 = create_comment(post_000, text='test comment', author=self.user_obama)
+
         tag_america = create_tag(name='america')
         post_000.tags.add(tag_america)
         post_000.save()
@@ -199,6 +231,11 @@ class TestView(TestCase):
         self.assertIn(post_000.content, main_div.text)
 
         self.check_right_side(soup)
+
+        # comment
+        comment_div = main_div.find('div', id='comment-list')
+        self.assertIn(comment_000.author.username, comment_div.text)
+        self.assertIn(comment_000.text, comment_div.text)
 
         # tag
         self.assertIn('#america', main_div.text)
@@ -343,6 +380,29 @@ class TestView(TestCase):
 
         soup = BeautifulSoup(response.content, 'html.parser')
         main_div = soup.find('div', id='main-div')
+
+
+    def test_new_comment(self):
+        post_000 = create_post(
+            title='first post', 
+            content='we are the world', 
+            author=self.author_000,
+        )
+
+        self.client.login(username='smith', password='nopassword')
+        response = self.client.post(
+            post_000.get_absolute_url() + 'new_comment/', 
+            {'text': 'A first Test'},
+            follow=True,
+        )
+
+        
+        self.assertEqual(response.status_code, 200)
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+        main_div = soup.find('div', id='main-div')
+        self.assertIn(post_000.title, main_div.text)
+        self.assertIn('A first Test', main_div.text)
 
 
 
