@@ -6,7 +6,7 @@ from markdownx.utils import markdown
 class Category(models.Model):
     name = models.CharField(max_length=25, unique=True)
     description = models.TextField(blank=True)
-    
+
     slug = models.SlugField(unique=True, allow_unicode=True) # 다양한 문자들을 유니코드로 변환가능
 
     def __str__(self):
@@ -27,8 +27,8 @@ class Tag(models.Model):
 
     def get_absolute_url(self):
         return '/blog/tag/{}/'.format(self.slug)
-    
-    
+
+
 
 class Post(models.Model):
     title = models.CharField(max_length=30)
@@ -47,7 +47,7 @@ class Post(models.Model):
 
     def get_markdown_content(self):
         return markdown(self.content)
-    
+
     def get_update_url(self):
         return self.get_absolute_url() + 'update/'
 
@@ -55,6 +55,9 @@ class Comment(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
     text = MarkdownxField()
     author = models.ForeignKey(User, on_delete=models.CASCADE)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
 
     def get_markdown_content(self):
         return markdown(self.text)
