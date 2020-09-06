@@ -412,6 +412,3 @@ class TestView(TestCase):
         main_div = soup.find('div', id='main-div')
         self.assertIn(post_000.title, main_div.text)
         self.assertIn('A first Test', main_div.text)
-
-
-

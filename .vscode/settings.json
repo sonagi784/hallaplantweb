@@ -1,0 +1,7 @@
+{
+    "python.pythonPath": "C:\\Users\\jhdesk\\anaconda3\\python.exe",
+    "editor.maxTokenizatinoLineLength": 10000,
+    "python.linting.pylintEnabled": true,
+    "python.linting.enabled": true,
+    "python.linting.pylintArgs": ["--load-plugins=pylint_django"],
+}
